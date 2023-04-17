@@ -28,12 +28,21 @@ def generate_job_title():
 # Function to generate a random email address
 def generate_email(id, name):
     domain = fake.free_email_domain()
-    return f"{name.replace(' ', '.').lower()}{id % 1000}@{domain}"
+    return f"{name.replace(' ', '.').lower()}{id % NUM_ROWS}@{domain}"
+
+# Function to generate a salary
+def generate_salary():
+    return fake.pydecimal(left_digits=5, right_digits=2, min_value=20000, max_value=99999)
+
+# Function to generate a credit card security code
+def generate_credit_card_security_code():
+    return fake.credit_card_security_code()
 
 # Generate random data and write it to a CSV file
 with open(FILENAME, "w", newline="") as file:
     writer = csv.writer(file)
-    writer.writerow(["id", "name", "email", "age", "gender", "city", "job_title"])
+    writer.writerow(["id", "name", "email", "age", "gender", "city", "job_title",
+                    "salary", "credit_card_security_code"])
     for i in range(NUM_ROWS):
         id = random.randint(0, 99999)
         name = fake.name()
@@ -42,4 +51,7 @@ with open(FILENAME, "w", newline="") as file:
         gender = generate_gender()
         city = generate_city()
         job_title = generate_job_title()
-        writer.writerow([id, name, email, age, gender, city, job_title])
+        salary = generate_salary()
+        credit_card_security_code = generate_credit_card_security_code()
+        writer.writerow([id, name, email, age, gender, city, job_title,
+                        salary, credit_card_security_code])
