@@ -2,39 +2,44 @@ import random
 import csv
 from faker import Faker
 
+# Global variables
+NUM_ROWS = 1000
+FILENAME = 'data.csv'
+
+# Instantiate the Faker library
 fake = Faker()
 
-# Función para generar una ciudad aleatoria
-def generar_ciudad():
+# Function to generate a random city
+def generate_city():
     return fake.city()
 
-# Función para generar una edad aleatoria
-def generar_edad():
+# Function to generate a random age
+def generate_age():
     return random.randint(18, 80)
 
-# Función para generar un sexo aleatorio
-def generar_sexo():
+# Function to generate a random gender
+def generate_gender():
     return random.choice(['M', 'F'])
 
-# Función para generar un trabajo aleatorio
-def generar_trabajo():
+# Function to generate a random job title
+def generate_job_title():
     return fake.job()
 
-# Función para generar un correo electrónico aleatorio
-def generar_correo(id, nombre):
-    proveedor = fake.free_email_domain()
-    return f"{nombre.replace(' ', '.').lower()}{id % 1000}@{proveedor}"
+# Function to generate a random email address
+def generate_email(id, name):
+    domain = fake.free_email_domain()
+    return f"{name.replace(' ', '.').lower()}{id % 1000}@{domain}"
 
-# Generar los datos aleatorios y escribirlos en el archivo CSV
-with open("datos.csv", "w", newline="") as archivo:
-    escritor_csv = csv.writer(archivo)
-    escritor_csv.writerow(["id", "nombre", "email", "edad", "sexo", "ciudad", "trabajo"])
-    for i in range(1000):
+# Generate random data and write it to a CSV file
+with open(FILENAME, "w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(["id", "name", "email", "age", "gender", "city", "job_title"])
+    for i in range(NUM_ROWS):
         id = random.randint(0, 99999)
-        nombre = fake.name()
-        correo = generar_correo(id, nombre)
-        edad = generar_edad()
-        sexo = generar_sexo()
-        ciudad = generar_ciudad()
-        trabajo = generar_trabajo()
-        escritor_csv.writerow([id, nombre, correo, edad, sexo, ciudad, trabajo])
+        name = fake.name()
+        email = generate_email(id, name)
+        age = generate_age()
+        gender = generate_gender()
+        city = generate_city()
+        job_title = generate_job_title()
+        writer.writerow([id, name, email, age, gender, city, job_title])
