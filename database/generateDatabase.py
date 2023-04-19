@@ -23,6 +23,19 @@ class GenerateDatabase():
     # Function to generate a random job title
     def generate_job_title(self):
         return self.fake.job()
+    
+    # Function to generate a random email address
+    def generate_email(self, id, name):
+        domain = self.fake.free_email_domain()
+        return f"{name.replace(' ', '.').lower()}{id % NUM_ROWS}@{domain}"
+
+    # Function to generate a salary
+    def generate_salary(self):
+        return self.fake.pydecimal(left_digits=5, right_digits=2, min_value=20000, max_value=99999)
+
+    # Function to generate a credit card security code
+    def generate_credit_card_security_code(self):
+        return self.fake.credit_card_security_code()
 
     # Function to generate a random email address
     def generate_email(self,id, name):
@@ -33,7 +46,8 @@ class GenerateDatabase():
         # Generate random data and write it to a CSV file
         with open(self.filename, "w", newline="") as file:
             writer = csv.writer(file)
-            writer.writerow(["id", "name", "email", "age", "gender", "city", "job_title"])
+            writer.writerow(["id", "name", "email", "age", "gender", "city", "job_title",
+                            "salary", "credit_card_security_code"])
             for i in range(self.num_rows):
                 id = random.randint(0, 99999)
                 name = self.fake.name()
@@ -42,5 +56,11 @@ class GenerateDatabase():
                 gender = self.generate_gender()
                 city = self.generate_city()
                 job_title = self.generate_job_title()
-                writer.writerow([id, name, email, age, gender, city, job_title])
+                salary = self.generate_salary()
+                credit_card_security_code = self.generate_credit_card_security_code()
+                writer.writerow([id, name, email, age, gender, city, job_title,
+                                salary, credit_card_security_code])
         return self.filename
+
+
+
