@@ -3,10 +3,10 @@ import csv
 from faker import Faker
 
 class GenerateDatabase():
-    def __init__(self, num_rows):
+    def __init__(self, num_rows, filename):
         self.fake = Faker() # Instantiate the Faker library
         self.num_rows = num_rows
-        self.filename = 'data.csv'
+        self.filename = filename
 
     # Function to generate a random city
     def generate_city(self):

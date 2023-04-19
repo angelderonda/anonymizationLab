@@ -1,8 +1,3 @@
-body {
-  background-color: rgb(106, 97, 102) !important;
-  color: #fff !important;
-}
-
 .container {
   padding: 40px;
 }
@@ -30,4 +25,21 @@ h1 {
 .btn-secondary:hover {
   background-color: #218838 !important;
   border-color: #1e7e34 !important;
+}
+
+ /* Table colors */
+ .table-container {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  font-size: 12px;
+}
+
+/* Table title icons */
+.table-title-icon {
+  margin-right: 8px;
+}
+
+/* Table title colors */
+.table-title {
+  color: #007bff;
 }
