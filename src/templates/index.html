@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Dataset Anonymization Tool</title>
+{% endblock %}
+
+{% block body %}
+
+<div class="container">
+    <h1>Dataset Anonymization Tool</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <p class="mt-5">
+                Welcome to the Dataset Anonymization Tool! This tool helps you to disseminate datasets containing
+                personally identifiable information with privacy guarantees. You can either use your own dataset or
+                generate a random one to anonymize.
+            </p>
+            <div class="btn-container d-flex justify-content-center">
+                <a href="/generate" class="btn btn-secondary btn-lg ml-3">
+                    <i class="fas fa-random"></i> Generate Random Dataset
+                </a>
+                <a href="/upload" class="btn btn-primary btn-lg">
+                    <i class="fas fa-upload"></i> Use Your Own Dataset
+                </a>
+                
+            </div>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}
