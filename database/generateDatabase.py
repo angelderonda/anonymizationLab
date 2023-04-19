@@ -27,7 +27,7 @@ class GenerateDatabase():
     # Function to generate a random email address
     def generate_email(self, id, name):
         domain = self.fake.free_email_domain()
-        return f"{name.replace(' ', '.').lower()}{id % NUM_ROWS}@{domain}"
+        return f"{name.replace(' ', '.').lower()}{id % self.num_rows}@{domain}"
 
     # Function to generate a salary
     def generate_salary(self):
