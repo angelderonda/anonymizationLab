@@ -1,6 +1,8 @@
 import random
 import csv
 from faker import Faker
+from geopy.geocoders import Nominatim
+
 
 class GenerateDatabase():
     def __init__(self, num_rows, filename):
@@ -8,9 +10,22 @@ class GenerateDatabase():
         self.num_rows = num_rows
         self.filename = filename
 
-    # Function to generate a random city
-    def generate_city(self):
-        return self.fake.city()
+    # Function to generate a random country
+    def generate_country():
+        geolocator = Nominatim(user_agent="myGeocoder")
+        while True:
+            latitude = random.uniform(-90, 90)
+            longitude = random.uniform(-180, 180)
+            location = geolocator.reverse(f"{latitude}, {longitude}", language='en')
+            if location is not None:
+                address = location.raw['address']
+                country = address.get('country', '')
+                if country not in ['Water', 'Ocean']:
+                    return country
+            else:
+                continue
+
+
 
     # Function to generate a random age
     def generate_age(self):
@@ -46,7 +61,7 @@ class GenerateDatabase():
         # Generate random data and write it to a CSV file
         with open(self.filename, "w", newline="") as file:
             writer = csv.writer(file)
-            writer.writerow(["id", "name", "email", "age", "gender", "city", "job_title",
+            writer.writerow(["id", "name", "email", "age", "gender", "country", "job_title",
                             "salary", "credit_card_security_code"])
             for i in range(self.num_rows):
                 id = random.randint(0, 99999)
@@ -54,13 +69,15 @@ class GenerateDatabase():
                 email = self.generate_email(id, name)
                 age = self.generate_age()
                 gender = self.generate_gender()
-                city = self.generate_city()
+                country = self.generate_country()
                 job_title = self.generate_job_title()
                 salary = self.generate_salary()
                 credit_card_security_code = self.generate_credit_card_security_code()
-                writer.writerow([id, name, email, age, gender, city, job_title,
+                writer.writerow([id, name, email, age, gender, country, job_title,
                                 salary, credit_card_security_code])
         return self.filename
 
+db = GenerateDatabase(25,"prueba.csv")
 
 
+db.generate_database()
