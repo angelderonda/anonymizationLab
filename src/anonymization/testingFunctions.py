@@ -1,8 +1,7 @@
 from anonymization import generalize_numeric_data, perturb_numeric_data, country_to_continent, perturb_shuffle_data, perturb_gaussian_data
 import pandas as pd
-import numpy as np
 import random
-from geopy.geocoders import Nominatim
+import requests
 
 # Example data: heights in centimeters
 heights = pd.Series([150, 162, 167])
@@ -39,26 +38,25 @@ print("perturb_gaussian_data heights:", perturb_gaussian_data.tolist())
 
 
 # Copy paste from "generateDatabase.py"
-def generate_country():
-    geolocator = Nominatim(user_agent="myGeocoder")
-    while True:
-        latitude = random.uniform(-90, 90)
-        longitude = random.uniform(-180, 180)
-        location = geolocator.reverse(
-            f"{latitude}, {longitude}", language='en')
-        if location is not None:
-            address = location.raw['address']
-            country = address.get('country', '')
-            if country not in ['Water', 'Ocean']:
-                return country
-        else:
-            continue
+def generate_countries():
+    # Fetch country data from the web
+    response = requests.get("https://raw.githubusercontent.com/mledoze/countries/master/countries.json")
+    if response.status_code == 200:
+        countries_data = response.json()
+        countries = []
+        for country_data in countries_data:
+            country_common_name = country_data.get("name", {}).get("common")
+            if country_common_name:
+                countries.append(country_common_name)     
+        return countries
+    else:
+        print("Failed to fetch country data")
 
-
-for country in range(2):
+for country in range(10):
 
     # Ejemplo de uso
-    country = generate_country()
+    countries = generate_countries()
+    country = random.choice(countries)
     continent = country_to_continent(country)
     if continent:
         print("Country:", country)

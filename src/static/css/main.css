@@ -32,6 +32,8 @@ h1 {
   background-color: #f8f9fa;
   border: 1px solid #dee2e6;
   font-size: 12px;
+  height: 500px; /* set desired height */
+  overflow-y: scroll;
 }
 
 /* Table title icons */

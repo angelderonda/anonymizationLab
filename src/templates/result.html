@@ -10,13 +10,13 @@
     <h1>Dataset Comparison</h1>
     <div class="row">
         <div class="col-md-6">
-            <div class="table-container text-center">
+            <div class="text-center">
                 <h3 class="table-title mt-2"><i class="fas fa-table table-title-icon"></i>Original Dataset</h3>
                 <div class="d-flex justify-content-center mb-2">
                     <a href="/download/{{original_file}}" class="btn btn-primary mr-2"><i
                             class="fas fa-download"></i>Download</a>
                 </div>
-                <div class="table-responsive" id="original-table-container">
+                <div class="table-responsive table-container" id="original-table-container">
                     <table class="table table-striped table-hover">
                         <thead>
                             <tr>
@@ -28,9 +28,9 @@
                         <tbody>
                             {% for row in original_row_data %} {# Limiting to first 10 rows #}
                             <tr>
-                                {% for col, row_ in zip(original_column_names, row) %}
-                                <td>{{row_}}</td>
-                                {% endfor %}
+                                    {% for col, row_ in zip(original_column_names, row) %}
+                                    <td style="max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{row_}}</td>
+                                    {% endfor %}
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -39,13 +39,17 @@
             </div>
         </div>
         <div class="col-md-6">
-            <div class="table-container text-center">
-                <h3 class="table-title mt-2"><i class="fas fa-table table-title-icon"></i>Anonymized Dataset</h3>
+            <div class="text-center">
+                <h3 class="table-title mt-2">
+                    <i class="fas fa-table table-title-icon"></i>
+                    Anonymized Dataset
+                    <i class="fas fa-info-circle ml-2" data-toggle="tooltip" data-placement="top" title="{{steps}}"></i>
+                  </h3>
                 <div class="d-flex justify-content-center mb-2">
                     <a href="/download/{{enc_file}}" class="btn btn-primary mr-2"><i
                             class="fas fa-download"></i>Download</a>
                 </div>
-                <div class="table-responsive" id="enc-table-container">
+                <div class="table-responsive table-container" id="enc-table-container">
                     <table class="table table-striped table-hover">
                         <thead>
                             <tr>
@@ -58,7 +62,7 @@
                             {% for row in enc_row_data %} {# Limiting to first 10 rows #}
                             <tr>
                                 {% for col, row_ in zip(enc_column_names, row) %}
-                                <td>{{row_}}</td>
+                                <td style="max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{row_}}</td>
                                 {% endfor %}
                             </tr>
                             {% endfor %}
@@ -68,14 +72,34 @@
             </div>
         </div>
     </div>
-    <div class="row">
+    <div class="row mt-2">
         <div class="col-md-6">
-            <h2>Histogram</h2>
-            <img src="{{histogram}}" alt="Histogram">
+            <h2>Age histogram</h2>
+            <img src="{{histogram1}}" alt="Histogram" width="115%">
+            <p class="text-center"><strong>Difference in age: {{age_difference}}</strong></p>
         </div>
         <div class="col-md-6">
-            <h2>Boxplot</h2>
-            <img src="{{boxplot}}" alt="Boxplot">
+            <h2>Salary histogram</h2>
+            <img src="{{histogram2}}" alt="Histogram" width="115%">
+            <p class="text-center"><strong>Difference in salary: {{salary_difference}}</strong></p>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-md-6">
+            <h2>Gender pie chart</h2>
+            <img src="{{pie_chart}}" alt="Histogram" width="115%">
+            <p class="text-center"><strong>% difference in male: {{percentage_male_difference}}%</strong></p>
+            <p class="text-center"><strong>% difference in female: {{percentage_female_difference}}%</strong></p>
+
+        </div>
+        <div class="col-md-6">
+            <h2>Utility</h2>
+            <p>Dataset anonymization is a process of removing sensitive information from a dataset. This tool allows you to
+                anonymize a dataset by removing sensitive information such as names, addresses, phone numbers, etc. The
+                tool also allows you to compare the original dataset with the anonymized dataset to see the difference in
+                the data.</p>
+            {{utility_explain|safe}}
+            <p></p>
         </div>
     </div>
 </div>
@@ -85,16 +109,29 @@
     var originalTableContainer = $('#original-table-container');
     var anonymizedTableContainer = $('#enc-table-container');
 
-    // Add scroll event listener to the original table container
+    // Add scroll event listener to the original table container for vertical scrolling
+    originalTableContainer.on('scroll', function () {
+        // Apply the same scroll position to the anonymized table container
+        anonymizedTableContainer.scrollTop(originalTableContainer.scrollTop());
+    });
+
+    // Add scroll event listener to the anonymized table container for vertical scrolling
+    anonymizedTableContainer.on('scroll', function () {
+        // Apply the same scroll position to the original table container
+        originalTableContainer.scrollTop(anonymizedTableContainer.scrollTop());
+    });
+
+    // Add scroll event listener to the original table container for horizontal scrolling
     originalTableContainer.on('scroll', function () {
         // Apply the same scroll position to the anonymized table container
         anonymizedTableContainer.scrollLeft(originalTableContainer.scrollLeft());
     });
 
-    // Add scroll event listener to the anonymized table container
+    // Add scroll event listener to the anonymized table container for horizontal scrolling
     anonymizedTableContainer.on('scroll', function () {
         // Apply the same scroll position to the original table container
         originalTableContainer.scrollLeft(anonymizedTableContainer.scrollLeft());
     });
 </script>
+
 {% endblock %}

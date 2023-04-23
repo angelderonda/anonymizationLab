@@ -1,33 +1,22 @@
 import random
 import csv
 from faker import Faker
-from geopy.geocoders import Nominatim
+import pycountry
 
 
 class GenerateDatabase():
     def __init__(self, num_rows, filename):
-        self.fake = Faker() # Instantiate the Faker library
+        self.fake = Faker()  # Instantiate the Faker library
         self.num_rows = num_rows
         self.filename = filename
 
     # Function to generate a random country
-    def generate_country():
-        geolocator = Nominatim(user_agent="myGeocoder")
-        while True:
-            latitude = random.uniform(-90, 90)
-            longitude = random.uniform(-180, 180)
-            location = geolocator.reverse(f"{latitude}, {longitude}", language='en')
-            if location is not None:
-                address = location.raw['address']
-                country = address.get('country', '')
-                if country not in ['Water', 'Ocean']:
-                    return country
-            else:
-                continue
-
-
+    def generate_countries(self):
+        all_countries = list(pycountry.countries)
+        return [country.name for country in all_countries]
 
     # Function to generate a random age
+
     def generate_age(self):
         return random.randint(18, 80)
 
@@ -38,7 +27,7 @@ class GenerateDatabase():
     # Function to generate a random job title
     def generate_job_title(self):
         return self.fake.job()
-    
+
     # Function to generate a random email address
     def generate_email(self, id, name):
         domain = self.fake.free_email_domain()
@@ -53,13 +42,14 @@ class GenerateDatabase():
         return self.fake.credit_card_security_code()
 
     # Function to generate a random email address
-    def generate_email(self,id, name):
+    def generate_email(self, id, name):
         domain = self.fake.free_email_domain()
         return f"{name.replace(' ', '.').lower()}{id % 1000}@{domain}"
 
     def generate_database(self):
         # Generate random data and write it to a CSV file
-        with open(self.filename, "w", newline="") as file:
+        countries = self.generate_countries()
+        with open(self.filename, "w", newline="", encoding='utf-8') as file:
             writer = csv.writer(file)
             writer.writerow(["id", "name", "email", "age", "gender", "country", "job_title",
                             "salary", "credit_card_security_code"])
@@ -69,7 +59,7 @@ class GenerateDatabase():
                 email = self.generate_email(id, name)
                 age = self.generate_age()
                 gender = self.generate_gender()
-                country = self.generate_country()
+                country = random.choice(countries)
                 job_title = self.generate_job_title()
                 salary = self.generate_salary()
                 credit_card_security_code = self.generate_credit_card_security_code()
@@ -77,7 +67,5 @@ class GenerateDatabase():
                                 salary, credit_card_security_code])
         return self.filename
 
-db = GenerateDatabase(25,"prueba.csv")
-
-
-db.generate_database()
+#db = GenerateDatabase(500, "prueba.csv")
+#db.generate_database()
