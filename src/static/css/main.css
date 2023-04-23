@@ -45,3 +45,42 @@ h1 {
 .table-title {
   color: #007bff;
 }
+
+/* Add some custom styles for the table */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+}
+
+.data-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.data-table tbody tr:nth-child(odd) {
+  background-color: #f9f9f9;
+}
+
+.data-table select {
+  font-size: 14px;
+  padding: 6px 24px 6px 8px;
+  background-color: lightblue;
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: 16px 16px;
+  appearance: none;
+  border: none;
+  color: #333;
+  width: 100%;
+}
+
+.data-table select:focus {
+  outline: none;
+}

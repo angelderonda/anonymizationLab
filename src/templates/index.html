@@ -19,13 +19,20 @@
                 <a href="/generate" class="btn btn-secondary btn-lg ml-3">
                     <i class="fas fa-random"></i> Generate Random Dataset
                 </a>
-                <a href="/upload" class="btn btn-primary btn-lg">
-                    <i class="fas fa-upload"></i> Use Your Own Dataset
-                </a>
-                
+                <form action="/upload" method="post" enctype="multipart/form-data">
+                    <label for="fileInput" class="btn btn-primary btn-lg">
+                        <i class="fas fa-upload"></i> Use Your Own Dataset
+                    </label>
+                    <input type="file" id="fileInput" name="file" class="d-none" accept=".csv">
+                </form>
             </div>
         </div>
     </div>
-    
 </div>
+<!-- Add JavaScript code to trigger file input click event and submit form -->
+<script>
+    document.getElementById('fileInput').addEventListener('change', function () {
+        this.form.submit();
+    });
+</script>
 {% endblock %}

@@ -67,5 +67,5 @@ class GenerateDatabase():
                                 salary, credit_card_security_code])
         return self.filename
 
-#db = GenerateDatabase(500, "prueba.csv")
-#db.generate_database()
+db = GenerateDatabase(500, "prueba.csv")
+db.generate_database()

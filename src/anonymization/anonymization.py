@@ -68,6 +68,13 @@ def perturb_gaussian_data(data, epsilon):
     perturbed_data = perturbed_data.round(2)
     return perturbed_data
 
+# Define a function to mask data
+def mask_string(s):
+    if len(s) == 2:
+        return s[0] + '*'
+    else:
+        return '*' + s[1:-1] + '*'
+    
 def masking_data(data):
     """
     Masking a column of data in a Pandas DataFrame by censoring some some characters.
@@ -77,11 +84,12 @@ def masking_data(data):
 
     Returns:
         pd.Series: A new Pandas Series that contains the masked data.
-    """
+    """ 
     # convert to string
     data = data.astype(str)
-    masked_data = data.str.replace(r'^(.).*(.)$', lambda x: '*' + x.group(1) + '*' if x.group(1) != x.group(2) else x.group(1) + '*' , regex=True)
+    masked_data = data.apply(mask_string)
     return masked_data
+
 
 def perturb_binary_data(data, probability=0.1):
     """

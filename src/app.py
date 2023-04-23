@@ -16,7 +16,7 @@ from pprint import pprint
 import argparse
 import random
 import matplotlib.pyplot as plt
-import numpy as np
+import math
 
 matplotlib.use('Agg')
 
@@ -27,12 +27,64 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
+@app.route('/upload', methods=['POST'])
+def upload():
+    if request.method == 'POST':
+        file = request.files['file']
+        file.save('static/'+file.filename)
+        df = pd.read_csv('static/'+file.filename)
+        return render_template('upload.html', column_names = df.columns.values, filename=file.filename)
+    
+@app.route('/upload/result', methods=['POST'])
+def generate_upload():
+    if request.method == 'POST':
+        filename = request.form.get('filename')
+        df = pd.read_csv('static/'+filename)
+
+        list_of_steps = ''
+
+        types = dict()
+        for column in df.columns:
+            types[column] = request.form.get('column_'+column)
+        
+        # Encrypt identifiers
+        encrypted_columns = []
+        for column in types:
+            if types[column] == 'id':
+                encrypted_columns.append(column)
+        
+        anon, key = encrypt_column(df, encrypted_columns)
+        print("Key: ", key)
+        list_of_steps += "§ Encrypt identifiers "+str(encrypted_columns) + "\n"
+
+        # Generalize numeric data
+        generalized_columns = []
+        for column in types:
+            if types[column] == 'num_data_gen':
+                generalized_columns.append(column)
+        
+        for column in generalized_columns:
+            interval_width = random.randint(math.floor((anon[column].max() - anon[column].min()) / 10), math.floor((anon[column].max() - anon[column].min()) / 5))
+            intervals = list(range( anon[column].min(),  anon[column].max() + interval_width, interval_width))
+            anon[column] = generalize_numeric_data(anon[column], intervals)
+            list_of_steps+="§ Generalize numeric data ("+column+") using intervals of width: "+str(interval_width)+"\n"
+        
+        # Save anonymized data
+        anon.to_csv("static/"+filename+"_anonymized.csv", index=False)
+
+        # Save decrypted data
+        key, data = reverse_encryption(anon, encrypted_columns, key)
+        data.to_csv("static/"+filename+"_decrypted.csv", index=False)
+
+        return render_template('result.html', original_column_names=df.columns.values, original_row_data=list(df.values.tolist()),
+                           enc_column_names=anon.columns.values, enc_row_data=list(anon.values.tolist()), zip=zip, original_file=filename, enc_file=filename+"_anonymized.csv", steps=list_of_steps)
+
 
 @app.route('/generate')
 def generate():
 
     id = uuid4()
-    gen = GenerateDatabase(1000, 'static/'+str(id)+".csv")
+    gen = GenerateDatabase(2000, 'static/'+str(id)+".csv")
     filename = gen.generate_database()
     df = pd.read_csv(filename)
 
@@ -63,7 +115,7 @@ def generate():
         list_of_steps+="§ Perturb numeric data (salary) with epsilon "+str(round(epsilon,2))+"\n"
     
     # Perturb binary data (gender)
-    epsilon = random.uniform(0.01,0.02)
+    epsilon = random.uniform(0.01,0.1)
     anon['gender'] = perturb_binary_data(anon['gender'], epsilon)
     list_of_steps+="§ Perturb binary data (gender) with epsilon "+str(round(epsilon,2))+"\n"
 
@@ -172,10 +224,6 @@ def generate():
      # Calculate the percentage difference in male and female counts
     percentage_male_difference = abs(round(((male_count_anonymized - male_count_original) / male_count_original) * 100,2))
     percentage_female_difference = abs(round(((female_count_anonymized - female_count_original) / female_count_original) * 100,2))
-
-        # Print the percentage difference
-    print("Percentage difference in male counts: {:.2f}%".format(percentage_male_difference))
-    print("Percentage difference in female counts: {:.2f}%".format(percentage_female_difference))
 
     # Create a pie chart with both original and anonymized data counts
     fig, ax = plt.subplots()

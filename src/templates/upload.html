@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Dataset Anonymization Tool</title>
+{% endblock %}
+
+{% block body %}
+
+<div class="container">
+    <h1>Dataset Anonymization Tool Configuration</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <p class="mt-5">
+                Manual configure the dataset anonymization tool. In this section you must select the type of each column
+                from the csv file you have uploaded in order to anonymize the dataset.
+            </p>
+            <form action="/upload/result" method="post">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for column in column_names %}
+                        <tr>
+                            <td class="text-center">
+                                <label for="column_{{column}}">{{column}}</label>
+                            </td>
+                            <td>
+                                <select name="column_{{column}}" id="column_{{column}}">
+                                    <option value="sensitive_ignore">Sensitive/Ignore</option>
+                                    <option value="id">Identifier</option>
+                                    <option value="num_data_gen">Numeric data (generalization)</option>
+                                    <option value="num_data_perb">Numeric data (perturbation)</option>
+                                    <option value="country">Country (generalization)</option>
+                                    <option value="bin_data">Binary data (perturbation)</option>
+                                    <option value="masking">Other data (Masking)</option>
+                                </select>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <input type="hidden" value="{{filename}}" name="filename">
+                <div style="text-align: center;">
+                    <input type="submit" value="Submit" class="btn btn-primary mt-3">
+                </div>
+                
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
