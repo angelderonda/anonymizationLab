@@ -26,6 +26,15 @@
                     <input type="file" id="fileInput" name="file" class="d-none" accept=".csv">
                 </form>
             </div>
+            <!--Display alert message if error variable is present-->
+            {% if error %}
+            <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                {{error|safe}}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

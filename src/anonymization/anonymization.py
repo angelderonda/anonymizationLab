@@ -15,7 +15,8 @@ def generalize_numeric_data(data, intervals):
     Returns:
         pd.Series: A new Pandas Series that contains the generalized data.
     """
-    generalized_data = pd.cut(data, intervals, labels=[f'[{intervals[i]}, {intervals[i+1]})' for i in range(len(intervals)-1)], right=False)
+    generalized_data = pd.cut(data, intervals, labels=[
+                              f'[{intervals[i]}, {intervals[i+1]})' for i in range(len(intervals)-1)], right=False)
     return generalized_data
 
 
@@ -32,10 +33,13 @@ def perturb_numeric_data(data, epsilon):
     """
     std_dev = np.std(data)
     epsilon = epsilon * std_dev
-    perturbed_data = data + pd.Series([random.uniform(-epsilon, epsilon) for _ in range(len(data))])
+    perturbed_data = data + \
+        pd.Series([random.uniform(-epsilon, epsilon)
+                  for _ in range(len(data))])
     # round to 2 decimal places
     perturbed_data = perturbed_data.round(2)
     return perturbed_data
+
 
 def perturb_shuffle_data(data):
     """
@@ -49,6 +53,7 @@ def perturb_shuffle_data(data):
     """
     perturbed_data = data.sample(frac=1).reset_index(drop=True)
     return perturbed_data
+
 
 def perturb_gaussian_data(data, epsilon):
     """
@@ -69,12 +74,18 @@ def perturb_gaussian_data(data, epsilon):
     return perturbed_data
 
 # Define a function to mask data
+
+
 def mask_string(s):
-    if len(s) == 2:
-        return s[0] + '*'
+    length = len(s)
+    if length < 2:
+        return s
     else:
-        return '*' + s[1:-1] + '*'
-    
+        censor_len = max(length // 2, 1)
+        uncensor_start = (length - censor_len) // 2
+        uncensor_end = uncensor_start + censor_len
+        return '*' * uncensor_start + s[uncensor_start:uncensor_end] + '*' * (length - uncensor_end)
+
 def masking_data(data):
     """
     Masking a column of data in a Pandas DataFrame by censoring some some characters.
@@ -84,7 +95,7 @@ def masking_data(data):
 
     Returns:
         pd.Series: A new Pandas Series that contains the masked data.
-    """ 
+    """
     # convert to string
     data = data.astype(str)
     masked_data = data.apply(mask_string)
@@ -115,15 +126,20 @@ def perturb_binary_data(data, probability=0.1):
             else:
                 perturbed_data[i] = 0
     # convert back to boolean
-    perturbed_data = np.where(perturbed_data == 0, unique_values[0], unique_values[1])
+    perturbed_data = np.where(
+        perturbed_data == 0, unique_values[0], unique_values[1])
     return perturbed_data
 
 # Generalization of categorical data (city --> continent)
+
+
 def country_to_continent(country_name):
     country_alpha2 = pc.country_name_to_country_alpha2(country_name)
     try:
-        country_continent_code = pc.country_alpha2_to_continent_code(country_alpha2)
-        country_continent_name = pc.convert_continent_code_to_continent_name(country_continent_code)
+        country_continent_code = pc.country_alpha2_to_continent_code(
+            country_alpha2)
+        country_continent_name = pc.convert_continent_code_to_continent_name(
+            country_continent_code)
         return country_continent_name
     except:
         return 'Unknown'
