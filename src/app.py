@@ -1,5 +1,3 @@
-from __future__ import print_function, unicode_literals
-
 import sys
 sys.path.append("..")  # Adds higher directory to python modules path.
 from anonymization.anonymization import generalize_numeric_data, perturb_numeric_data, perturb_shuffle_data, perturb_gaussian_data, perturb_binary_data, country_to_continent, masking_data
@@ -9,9 +7,6 @@ from pandas.api.types import is_string_dtype
 import math
 import matplotlib.pyplot as plt
 import random
-import argparse
-from pprint import pprint
-from PyInquirer import style_from_dict, Token, prompt, Separator
 import os
 import glob
 import signal
@@ -709,50 +704,6 @@ def delete_files(signum, frame):
         os.remove(f)
     exit(1)
 
-
-def start_web_interface():
-    print("Starting web interface...")
-    app.run(debug=True)
-
-
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, delete_files)
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--web', action='store_true')
-    if parser.parse_args().web:
-        start_web_interface()
-
-    print("Welcome to the Anonymizer Tool CLI!")
-    while True:
-        questions = [
-            {
-                'type': 'list',
-                'message': 'What database do you want to use?',
-                'name': 'db_type',
-                'choices': [
-                    {
-                        'name': 'Use my own database (CSV)'
-                    },
-                    {
-                        'name': 'Generate a random database'
-                    },
-                ],
-                'validate': lambda answer: 'You must choose at least one type.'
-                if len(answer) == 0 else True
-            }
-        ]
-        answers = prompt(questions)
-        if answers['db_type'] == 'Use my own database (CSV)':
-            filename = input("Please enter the path to your CSV file: ")
-            df = pd.read_csv(filename)
-            print("Your CSV file has the following columns: ")
-            print(df.columns.values)
-        else:
-            num_rows = int(input("How many rows do you want to generate? "))
-            filename = input("Please enter the path to save the CSV file: ")
-            gen = GenerateDatabase(num_rows, filename)
-            filename = gen.generate_database()
-            df = pd.read_csv(filename)
-            print("Your CSV file has the following columns: ")
-            print(df.columns.values)
+    app.run(debug=True)
