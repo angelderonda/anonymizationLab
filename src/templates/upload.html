@@ -1,101 +1,120 @@
-{% extends 'base.html' %}
-
-{% block head %}
+{% extends 'base.html' %} {% block head %}
 <title>Dataset Anonymization Tool</title>
-{% endblock %}
-
-{% block body %}
+{% endblock %} {% block body %}
 
 <div class="container">
-    <h1>Dataset Anonymization Tool Configuration</h1>
+  <h1>Dataset Anonymization Tool Configuration</h1>
+  <form action="/upload/result" method="post">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <p class="mt-5">
-                Manual configure the dataset anonymization tool. In this section you must select the type of each column
-                from the csv file you have uploaded in order to anonymize the dataset.
-            </p>
-            <form action="/upload/result" method="post">
-                <table class="data-table table-responsive">
-                    <thead>
-                        <tr>
-                            <th>Column</th>
-                            <th>Action</th>
-                            <th>Epsilon</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for column in column_names %}
-                        <tr>
-                            <td class="text-center">
-                                <label for="column_{{column}}">{{column}}</label>
-                            </td>
-                            <td>
-                                <select name="column_{{column}}" id="column_{{column}}"
-                                    onchange="checkNumericData(this)">
-                                    <option value="sensitive_ignore">Sensitive/Ignore</option>
-                                    <option value="id">Identifier</option>
-                                    <option value="num_gen">Numeric data (generalization)</option>
-                                    <option value="num_data_pert_gauss">Numeric data (gaussian perturbation)</option>
-                                    <option value="num_data_pert_shuff">Numeric data (shuffle perturbation)</option>
-                                    <option value="num_data_pert_numer">Numeric data (numeric perturbation)</option>
-                                    <option value="country">Country (generalization)</option>
-                                    <option value="num_data_bin">Binary data (perturbation)</option>
-                                    <option value="mask">Other data (Masking)</option>
-                                </select>
-                            </td>
-                            <!-- Add an additional column with an input text field for numeric data -->
-                            <td id="numeric_data_column_{{column}}" style="display:none">
-                                <input type="number" min="0" max="1" step="0.01" name="epsilon_{{column}}"
-                                    id="epsilon_{{column}}" oninput="storeValue(this)">
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <input type="hidden" value="{{filename}}" name="filename">
-                <div style="text-align: center;">
-                    <input type="submit" value="Submit" class="btn btn-primary mt-3">
-                </div>
-
-            </form>
+      <div class="col-md-6">
+        <p class="mt-5">
+          Manual configure the dataset anonymization tool. In this section you
+          must select the type of each column from the csv file you have
+          uploaded in order to anonymize the dataset.
+        </p>
+        <div>
+          <h2>General settings</h2>
+          <input type="number" value="-1" /> k-anonymity
         </div>
-    </div>
+      </div>
+      <table class="data-table table-responsive col-md-6">
+        <thead>
+          <tr>
+            <th>Column</th>
+            <th>Action</th>
+            <th>Epsilon</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for column in column_names %}
+          <tr>
+            <td class="text-center">
+              <label for="column_{{column}}">{{column}}</label>
+            </td>
+            <td>
+              <select
+                name="column_{{column}}"
+                id="column_{{column}}"
+                onchange="checkNumericData(this)"
+              >
+                <option value="sensitive_ignore">Sensitive/Ignore</option>
+                <option value="id">Identifier</option>
+                <option value="email">Email hmac(user)@hma(host)</option>
+                <option value="num_gen">Numeric data (generalization)</option>
+                <option value="num_data_pert_gauss">
+                  Numeric data (gaussian perturbation)
+                </option>
+                <option value="num_data_pert_shuff">
+                  Numeric data (shuffle perturbation)
+                </option>
+                <option value="num_data_pert_numer">
+                  Numeric data (numeric perturbation)
+                </option>
+                <option value="country">Country (generalization)</option>
+                <option value="num_data_bin">Binary data (perturbation)</option>
+                <option value="mask">Other data (Masking)</option>
+              </select>
+            </td>
+            <!-- Add an additional column with an input text field for numeric data -->
+            <td id="numeric_data_column_{{column}}" style="display: none">
+              <input
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                name="epsilon_{{column}}"
+                id="epsilon_{{column}}"
+                oninput="storeValue(this)"
+              />
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
 
+      <input type="hidden" value="{{filename}}" name="filename" />
+    </div>
+    <div style="text-align: center">
+      <input type="submit" value="Submit" class="btn btn-primary mt-3" />
+    </div>
+  </form>
 </div>
 
 <script>
-    // Function to check if "Numeric data" is selected and display the additional column with input text field
-    function checkNumericData(selectElem) {
-        var column = selectElem.id.split("_")[1];
-        var numericDataColumn = document.getElementById("numeric_data_column_" + column);
-        if (selectElem.value.startsWith("num_data")) {
-            numericDataColumn.style.display = "block";
-        } else {
-            numericDataColumn.style.display = "none";
-        }
+  // Function to check if "Numeric data" is selected and display the additional column with input text field
+  function checkNumericData(selectElem) {
+    var column = selectElem.id.split("_")[1];
+    var numericDataColumn = document.getElementById(
+      "numeric_data_column_" + column
+    );
+    if (selectElem.value.startsWith("num_data")) {
+      numericDataColumn.style.display = "block";
+    } else {
+      numericDataColumn.style.display = "none";
     }
+  }
 
-    // Function to retrieve the values of the input fields from localStorage and set them as default values
-    function setDefaultValues() {
-        var inputs = document.querySelectorAll('input[type="number"]');
-        for (var i = 0; i < inputs.length; i++) {
-            var key = inputs[i].getAttribute("name");
-            var value = localStorage.getItem(key);
-            if (value !== null) {
-                inputs[i].value = value;
-            }
-        }
+  // Function to retrieve the values of the input fields from localStorage and set them as default values
+  function setDefaultValues() {
+    var inputs = document.querySelectorAll('input[type="number"]');
+    for (var i = 0; i < inputs.length; i++) {
+      var key = inputs[i].getAttribute("name");
+      var value = localStorage.getItem(key);
+      if (value !== null) {
+        inputs[i].value = value;
+      }
     }
+  }
 
-    // Call setDefaultValues() when the page loads
-    window.onload = setDefaultValues;
+  // Call setDefaultValues() when the page loads
+  window.onload = setDefaultValues;
 
-    // Function to store the value of an input field in localStorage
-    function storeValue(inputElem) {
-        var key = inputElem.getAttribute("name");
-        var value = inputElem.value;
-        localStorage.setItem(key, value);
-    }
+  // Function to store the value of an input field in localStorage
+  function storeValue(inputElem) {
+    var key = inputElem.getAttribute("name");
+    var value = inputElem.value;
+    localStorage.setItem(key, value);
+  }
 </script>
 
 {% endblock %}

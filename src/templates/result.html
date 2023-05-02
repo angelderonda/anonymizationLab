@@ -96,6 +96,12 @@
     </div>
 </div>
 
+<p>
+    <i class="fa fa-info-circle" aria-hidden="true"></i>
+
+    Note that encrypted columns do not differ in the first few bytes, causing them to look identical in the anonymized dataset preview
+</p>
+
 <div class="row mt-2">
     {% if histograms %}
     {% for key in histograms.keys() %}

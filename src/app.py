@@ -1,21 +1,21 @@
 import sys
 sys.path.append("..")  # Adds higher directory to python modules path.
-from anonymization.anonymization import generalize_numeric_data, perturb_numeric_data, perturb_shuffle_data, perturb_gaussian_data, perturb_binary_data, country_to_continent, masking_data
-import chardet
-from pandas.api.types import is_numeric_dtype
-from pandas.api.types import is_string_dtype
-import math
-import matplotlib.pyplot as plt
-import random
-import os
-import glob
-import signal
-from uuid import uuid4
-import matplotlib
-from deident.deident import encrypt_column, reverse_encryption
-from database.generateDatabase import GenerateDatabase
-from flask import Flask, redirect, render_template, request, send_file
 import pandas as pd
+from flask import Flask, redirect, render_template, request, send_file
+from database.generateDatabase import GenerateDatabase
+from deident.deident import encrypt_column, reverse_encryption, deident_email
+import matplotlib
+from uuid import uuid4
+import signal
+import glob
+import os
+import random
+import matplotlib.pyplot as plt
+import math
+from pandas.api.types import is_string_dtype
+from pandas.api.types import is_numeric_dtype
+import chardet
+from anonymization.anonymization import generalize_numeric_data, perturb_numeric_data, perturb_shuffle_data, perturb_gaussian_data, perturb_binary_data, country_to_continent, masking_data
 
 matplotlib.use('Agg')
 
@@ -74,9 +74,21 @@ def generate_upload():
 
         anon, key = encrypt_column(df, encrypted_columns)
         if len(encrypted_columns) > 0:
-            print("Key: ", key)
+            print("Encryption Key: ", key)
             modal_steps += "<i class='fas fa-check text-success'></i> Encrypt identifiers " + \
                 str(encrypted_columns) + "<br>"
+
+        # email
+        email_columns = []
+        for column in types:
+            if types[column] == 'email':
+                email_columns.append(column)
+
+        anon, email_key = deident_email(anon, email_columns)
+        if len(email_columns) > 0:
+                    print("Email HMAC Key: ", email_key)
+                    modal_steps += "<i class='fas fa-check text-success'></i> De-identify emails " + \
+                        str(email_columns) + "<br>"
 
         # Generalize numeric data
         generalized_columns = []
@@ -183,7 +195,7 @@ def generate_upload():
         anon.to_csv("static/"+filename_without_ext+"_anonymized.csv", index=False)
 
         # Save decrypted data
-        key, data = reverse_encryption(anon, encrypted_columns, key)
+        data = reverse_encryption(anon, encrypted_columns, key)
         data.to_csv("static/"+filename_without_ext+"_decrypted.csv", index=False)
 
         # Print histograms
@@ -343,6 +355,13 @@ def generate_upload():
                 str(number_of_columns_encrypted) + \
                 '</em> (5 points less for each one). Total: -'+str(number_of_columns_encrypted * 5)+' utility points</li>'
             anon_utility = anon_utility - (number_of_columns_encrypted * 5)
+        
+        number_of_email_columns = len(email_columns)
+        if number_of_email_columns > 0:
+            utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-envelope"></i> Number of email columns: <em>' + \
+                str(number_of_email_columns) + \
+                '</em> (3 points less for each one). Total: -'+str(number_of_email_columns * 3)+' utility points</li>'
+            anon_utility = anon_utility - (number_of_email_columns * 3)
         for column in df.columns:
             if column in perturbed_columns:
                 # numeric
@@ -453,9 +472,14 @@ def generate():
     modal_steps = ''  # Modal steps
 
     # Encrypt identifiers
-    anon, key = encrypt_column(df, ["id", "name", "email"])
+    anon, key = encrypt_column(df, ["id", "name"])
     print("Key: ", key)
-    modal_steps += "<i class='fas fa-check text-success'></i> Encrypt identifiers (id, name, email)<br>"
+    modal_steps += "<i class='fas fa-check text-success'></i> Encrypt identifiers (id, name)<br>"
+
+    # De-identify email
+    anon, email_key = deident_email(anon, ["email"])
+    print("Email HMAC key: ", email_key)
+    modal_steps += "<i class='fas fa-check text-success'></i> De-identify email (email)<br>"
 
     # Generalize numeric data (age)
     interval_width = random.randint(5, 10)  # Random interval width
@@ -505,7 +529,7 @@ def generate():
     anon.to_csv("static/"+str(id)+"anonymized.csv", index=False)
 
     # Save decrypted data
-    key, data = reverse_encryption(anon, ["id", "name", "email"], key)
+    data = reverse_encryption(anon, ["id", "name"], key)
     data.to_csv("static/"+str(id)+"decrypted.csv", index=False)
 
     # HISTOGRAMS

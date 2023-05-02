@@ -46,6 +46,12 @@ h1 {
   color: #007bff;
 }
 
+/* Hide arrows from number input*/
+input {
+  -moz-appearance: textfield;
+}
+
+
 /* Add some custom styles for the table */
 .data-table {
   width: 100%;
