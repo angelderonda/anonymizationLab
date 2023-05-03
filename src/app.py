@@ -1,21 +1,24 @@
 import sys
 sys.path.append("..")  # Adds higher directory to python modules path.
-import pandas as pd
-from flask import Flask, redirect, render_template, request, send_file
-from database.generateDatabase import GenerateDatabase
-from deident.deident import encrypt_column, reverse_encryption, deident_email
-import matplotlib
-from uuid import uuid4
-import signal
-import glob
-import os
-import random
-import matplotlib.pyplot as plt
-import math
-from pandas.api.types import is_string_dtype
-from pandas.api.types import is_numeric_dtype
-import chardet
+
 from anonymization.anonymization import generalize_numeric_data, perturb_numeric_data, perturb_shuffle_data, perturb_gaussian_data, perturb_binary_data, country_to_continent, masking_data
+import chardet
+from pandas.api.types import is_numeric_dtype
+from pandas.api.types import is_string_dtype
+import math
+import matplotlib.pyplot as plt
+import random
+import os
+import glob
+import signal
+from uuid import uuid4
+import matplotlib
+from deident.deident import encrypt_column, reverse_encryption, deident_email
+from database.generateDatabase import GenerateDatabase
+from flask import Flask, redirect, render_template, request, send_file
+from deident.kanon import ensure_k_anon
+import pandas as pd
+
 
 matplotlib.use('Agg')
 
@@ -54,11 +57,13 @@ def upload():
 
 
 @app.route('/upload/result', methods=['POST'])
-def generate_upload():
+def xxgenerate_upload():
     if request.method == 'POST':
         filename = request.form.get('filename')
         filename_without_ext = filename.split('.')[0]
         df = pd.read_csv('static/'+filename)
+
+        anon = df.copy()
 
         modal_steps = ''
 
@@ -66,34 +71,21 @@ def generate_upload():
         for column in df.columns:
             types[column] = request.form.get('column_'+column)
 
-        # Encrypt identifiers
         encrypted_columns = []
+        email_columns = []
+        generalized_columns = []
+        perturbed_columns = []
+        country_columns = []
+        masked_columns = []
+        removed_columns = []
+
         for column in types:
             if types[column] == 'id':
                 encrypted_columns.append(column)
-
-        anon, key = encrypt_column(df, encrypted_columns)
-        if len(encrypted_columns) > 0:
-            print("Encryption Key: ", key)
-            modal_steps += "<i class='fas fa-check text-success'></i> Encrypt identifiers " + \
-                str(encrypted_columns) + "<br>"
-
-        # email
-        email_columns = []
-        for column in types:
-            if types[column] == 'email':
+            elif types[column] == 'email':
                 email_columns.append(column)
-
-        anon, email_key = deident_email(anon, email_columns)
-        if len(email_columns) > 0:
-                    print("Email HMAC Key: ", email_key)
-                    modal_steps += "<i class='fas fa-check text-success'></i> De-identify emails " + \
-                        str(email_columns) + "<br>"
-
-        # Generalize numeric data
-        generalized_columns = []
-        for column in types:
-            if types[column] == 'num_gen':
+            # Generalize numeric data
+            elif types[column] == 'num_gen':
                 if anon[column].dtype == 'float64' or anon[column].dtype == 'float32':
                     anon[column] = anon[column].astype(int)
                     modal_steps += "<i class='fas fa-check text-success'></i> Change from float to int column " + \
@@ -103,6 +95,38 @@ def generate_upload():
                         anon[column].dtype)+"<br>"
                     continue
                 generalized_columns.append(column)
+            elif types[column].startswith('num_data_pert'):
+                if is_numeric_dtype(anon[column]) == False:
+                    modal_steps += "<i class='fas fa-times text-danger'></i> Skipping Perturb numeric data (not int nor float), is "+str(
+                        anon[column].dtype)+"<br>"
+                    continue
+                perturbed_columns.append(column)
+            elif types[column] == 'country':
+                if is_string_dtype(anon[column]) == False:
+                    modal_steps += "<i class='fas fa-times text-danger'></i> Skipping Generalize country name (not string), is "+str(
+                        anon[column].dtype)+"<br>"
+                    continue
+                country_columns.append(column)
+            elif types[column] == 'remove':
+                removed_columns.append(column)
+                anon.drop(column, axis=1, inplace=True)
+                modal_steps += "<i class='fas fa-check text-success'></i> Removed column " + column + "<br>"
+
+            elif types[column] == 'mask':
+                masked_columns.append(column)
+
+        # Encrypt identifiers
+        if len(encrypted_columns) > 0:
+            anon, key = encrypt_column(anon, encrypted_columns)
+            print("Encryption Key: ", key)
+            modal_steps += "<i class='fas fa-check text-success'></i> Encrypt identifiers " + \
+                str(encrypted_columns) + "<br>"
+
+        if len(email_columns) > 0:
+            anon, email_key = deident_email(anon, email_columns)
+            print("Email HMAC Key: ", email_key)
+            modal_steps += "<i class='fas fa-check text-success'></i> De-identify emails " + \
+                str(email_columns) + "<br>"
 
         for column in generalized_columns:
             interval_width = random.randint(math.floor((anon[column].max(
@@ -112,16 +136,6 @@ def generate_upload():
             anon[column] = generalize_numeric_data(anon[column], intervals)
             modal_steps += "<i class='fas fa-check text-success'></i> Generalize numeric data ("+column+") using intervals of width: "+str(
                 interval_width)+"<br>"
-
-        # Perturb numeric data
-        perturbed_columns = []
-        for column in types:
-            if types[column].startswith('num_data_pert'):
-                if is_numeric_dtype(anon[column]) == False:
-                    modal_steps += "<i class='fas fa-times text-danger'></i> Skipping Perturb numeric data (not int nor float), is "+str(
-                        anon[column].dtype)+"<br>"
-                    continue
-                perturbed_columns.append(column)
 
         for column in perturbed_columns:
             perturb_option = types[column].split('_')[3]
@@ -157,20 +171,11 @@ def generate_upload():
                 epsilon = random.uniform(0.01, 1)
             else:
                 epsilon = float(request.form.get('epsilon_'+column))
-            anon[column] = perturb_binary_data(anon[column],epsilon)
-            modal_steps += "<i class='fas fa-check text-success'></i> Perturb binary data with epsilon " + str(epsilon)+ " (" + \
+            anon[column] = perturb_binary_data(anon[column], epsilon)
+            modal_steps += "<i class='fas fa-check text-success'></i> Perturb binary data with epsilon " + str(epsilon) + " (" + \
                 column+")<br>"
 
         # Country generalization
-        country_columns = []
-        for column in types:
-            if types[column] == 'country':
-                if is_string_dtype(anon[column]) == False:
-                    modal_steps += "<i class='fas fa-times text-danger'></i> Skipping Generalize country name (not string), is "+str(
-                        anon[column].dtype)+"<br>"
-                    continue
-                country_columns.append(column)
-
         for column in country_columns:
             for country in anon[column].unique():
                 print(country)
@@ -181,22 +186,37 @@ def generate_upload():
                 column+")<br>"
 
         # Masking data
-        masked_columns = []
-        for column in types:
-            if types[column] == 'mask':
-                masked_columns.append(column)
-
         for column in masked_columns:
             anon[column] = masking_data(anon[column])
             modal_steps += "<i class='fas fa-check text-success'></i> Mask data (" + \
                 column+")<br>"
 
+        # ensure k-anonymity
+        try:
+            k = int(request.form.get('kanon'))
+        except:
+            k = None
+        k_report = None
+        if k != None:
+            ignored_types = ["sensitive_ignore", "remove", "email", "id"]
+            
+            quasi_identifiers = [
+                col if type != 'country' else 'continent' for col, type in types.items() if type not in ignored_types]
+            len_before = len(anon)
+            anon = ensure_k_anon(anon, k, quasi_identifiers)
+            k_report = {"len": len_before,
+                        "removed_rows": len_before - len(anon),
+                        "k": k,
+                        "percent": round((len_before-len(anon)) / len_before * 100, 2)}
+
         # Save anonymized data
-        anon.to_csv("static/"+filename_without_ext+"_anonymized.csv", index=False)
+        anon.to_csv("static/"+filename_without_ext +
+                    "_anonymized.csv", index=False)
 
         # Save decrypted data
         data = reverse_encryption(anon, encrypted_columns, key)
-        data.to_csv("static/"+filename_without_ext+"_decrypted.csv", index=False)
+        data.to_csv("static/"+filename_without_ext +
+                    "_decrypted.csv", index=False)
 
         # Print histograms
         # Histogram for generalized data
@@ -215,7 +235,8 @@ def generate_upload():
                         label='Mean original ' + column)
 
             # Save the histogram as an image file
-            hist_plot.get_figure().savefig('static/histogram'+str(num)+'_'+filename_without_ext+'.png')
+            hist_plot.get_figure().savefig('static/histogram'+str(num) +
+                                           '_'+filename_without_ext+'.png')
 
             # Create a histogram of the anonymized column
             original = anon[column]
@@ -243,12 +264,14 @@ def generate_upload():
             plt.legend()
 
             # Save the histogram as an image file
-            hist_plot.get_figure().savefig('static/histogram'+str(num)+'_'+filename_without_ext+'.png')
+            hist_plot.get_figure().savefig('static/histogram'+str(num) +
+                                           '_'+filename_without_ext+'.png')
             hist_plot.get_figure().clear()
-            histograms[column] = 'histogram'+str(num)+'_'+filename_without_ext+'.png'
+            histograms[column] = 'histogram' + \
+                str(num)+'_'+filename_without_ext+'.png'
             differences[column] = difference
             num += 1
-        
+
         # Histogram for perturbed numeric data
         for column in perturbed_columns:
             # Create a histogram of the original salary column
@@ -262,7 +285,8 @@ def generate_upload():
                         label='Mean original ' + column)
 
             # Save the histogram as an image file
-            hist_plot.get_figure().savefig('static/histogram'+str(num)+'_'+filename_without_ext+'.png')
+            hist_plot.get_figure().savefig('static/histogram'+str(num) +
+                                           '_'+filename_without_ext+'.png')
 
             # Create a histogram of the anonymized salary column
             hist_plot = anon[column].plot.hist(
@@ -281,9 +305,11 @@ def generate_upload():
             plt.legend()
 
             # Save the histogram as an image file
-            hist_plot.get_figure().savefig('static/histogram'+str(num)+'_'+filename_without_ext+'.png')
+            hist_plot.get_figure().savefig('static/histogram'+str(num) +
+                                           '_'+filename_without_ext+'.png')
             hist_plot.get_figure().clear()
-            histograms[column] = 'histogram'+str(num)+'_'+filename_without_ext+'.png'
+            histograms[column] = 'histogram' + \
+                str(num)+'_'+filename_without_ext+'.png'
             differences[column] = salary_difference
             num += 1
 
@@ -314,31 +340,38 @@ def generate_upload():
             # Create a pie chart with both original and anonymized data counts
             fig, ax = plt.subplots()
             ax.pie(merged_counts['Original'], labels=merged_counts.index,
-                autopct='%1.1f%%', startangle=90, colors=['red', 'blue'], pctdistance=0.85)
+                   autopct='%1.1f%%', startangle=90, colors=['red', 'blue'], pctdistance=0.85)
             ax.pie(merged_counts['Anonymized'], autopct='%1.1f%%', startangle=90, colors=[
                 'lightcoral', 'lightblue'], radius=0.75, pctdistance=0.5)
             plt.title(column + ' Distribution (Original vs Anonymized)')
 
             legend_handles = [
-                plt.Rectangle((0, 0), 1, 1, fc='none', edgecolor='red', linewidth=5),
-                plt.Rectangle((0, 0), 1, 1, fc='none', edgecolor='blue', linewidth=5),
                 plt.Rectangle((0, 0), 1, 1, fc='none',
-                            edgecolor='lightcoral', linewidth=5),
+                              edgecolor='red', linewidth=5),
                 plt.Rectangle((0, 0), 1, 1, fc='none',
-                            edgecolor='lightblue', linewidth=5)
+                              edgecolor='blue', linewidth=5),
+                plt.Rectangle((0, 0), 1, 1, fc='none',
+                              edgecolor='lightcoral', linewidth=5),
+                plt.Rectangle((0, 0), 1, 1, fc='none',
+                              edgecolor='lightblue', linewidth=5)
             ]
-            
+
             label1 = merged_counts.index[0]
             label2 = merged_counts.index[1]
-            legend_labels = [label1 + ' Original', label2 + ' Original', label1 + ' Anonymized', label2 + ' Anonymized']
+            legend_labels = [label1 + ' Original', label2 + ' Original',
+                             label1 + ' Anonymized', label2 + ' Anonymized']
 
             # Add legend with custom handles and labels
             ax.legend(legend_handles, legend_labels, loc='upper left')
 
-            plt.savefig('static/piechart'+str(num)+'_'+filename_without_ext+'.png')
+            plt.savefig('static/piechart'+str(num) +
+                        '_'+filename_without_ext+'.png')
             plt.close()
-            histograms[column] = 'piechart'+str(num)+'_'+filename_without_ext+'.png'
-            differences[column] = label1 + ' difference: ' + str(dif_v1) + '%, ' + label2 + ' difference: ' + str(dif_v2) + '%'
+            histograms[column] = 'piechart' + \
+                str(num)+'_'+filename_without_ext+'.png'
+            differences[column] = label1 + ' difference: ' + \
+                str(dif_v1) + '%, ' + label2 + \
+                ' difference: ' + str(dif_v2) + '%'
             num += 1
 
         # Utility explain
@@ -353,15 +386,29 @@ def generate_upload():
         if number_of_columns_encrypted > 0:
             utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-columns"></i> Number of columns encrypted: <em>' + \
                 str(number_of_columns_encrypted) + \
-                '</em> (5 points less for each one). Total: -'+str(number_of_columns_encrypted * 5)+' utility points</li>'
+                '</em> (5 points less for each one). Total: -' + \
+                str(number_of_columns_encrypted * 5)+' utility points</li>'
             anon_utility = anon_utility - (number_of_columns_encrypted * 5)
-        
+
         number_of_email_columns = len(email_columns)
         if number_of_email_columns > 0:
             utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-envelope"></i> Number of email columns: <em>' + \
                 str(number_of_email_columns) + \
-                '</em> (3 points less for each one). Total: -'+str(number_of_email_columns * 3)+' utility points</li>'
+                '</em> (3 points less for each one). Total: -' + \
+                str(number_of_email_columns * 3)+' utility points</li>'
             anon_utility = anon_utility - (number_of_email_columns * 3)
+        number_of_removed_columns = len(removed_columns)
+        if number_of_removed_columns > 0:
+            utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-trash"></i> Number of removed columns: <em>' + \
+                str(number_of_removed_columns) + \
+                '</em> (5 points less for each one). Total: -' + \
+                str(number_of_removed_columns * 5)+' utility points</li>'
+            anon_utility = anon_utility - (number_of_removed_columns * 5)
+        if k_report:
+            utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-user-secret"></i> k-anonymity: <em>' + \
+                str(k_report['percent']) + '% </em> of rows were removed. Total: -' + \
+                str(k_report['percent']) +' utility points</li>'
+            anon_utility = anon_utility - k_report['percent']
         for column in df.columns:
             if column in perturbed_columns:
                 # numeric
@@ -371,7 +418,9 @@ def generate_upload():
                 # calculate the difference an substract between 0 and 10 points
                 max_diff = df[column].mean() / 5
                 substracted_points = 5 * (differences[column]/max_diff)
-                utility_explain += 'Difference obtained: <em>' + str(differences[column]) + '</em>. Total: -'+str(round(substracted_points,2)+5)+' utility points</li>'
+                utility_explain += 'Difference obtained: <em>' + \
+                    str(differences[column]) + '</em>. Total: -' + \
+                    str(round(substracted_points, 2)+5)+' utility points</li>'
                 anon_utility = anon_utility - substracted_points
             elif column in perturbed_binary:
                 # binary
@@ -399,7 +448,8 @@ def generate_upload():
                 dif_v2 = abs(round(
                     ((female_count_anonymized - female_count_original) / female_count_original), 2))
                 substracted_points = 5 * (dif_v1 + dif_v2) / 2
-                utility_explain += 'Differences obtained: <em>' + str(dif_v1*100) + '% y ' +str(dif_v2*100)+ '%</em>. Total: -'+str(round(substracted_points,2)+5)+' utility points</li>'
+                utility_explain += 'Differences obtained: <em>' + str(dif_v1*100) + '% y ' + str(
+                    dif_v2*100) + '%</em>. Total: -'+str(round(substracted_points, 2)+5)+' utility points</li>'
                 anon_utility = anon_utility - substracted_points
             elif column in generalized_columns:
                 # categorical
@@ -408,17 +458,21 @@ def generate_upload():
                 anon_utility = anon_utility - 5
                 max_diff = df[column].mean() / 5
                 substracted_points = 5 * (differences[column]/max_diff)
-                utility_explain += 'Difference obtained: <em>' + str(differences[column]) + '</em>. Total: -'+str(round(substracted_points,2)+5)+' utility points</li>'
+                utility_explain += 'Difference obtained: <em>' + \
+                    str(differences[column]) + '</em>. Total: -' + \
+                    str(round(substracted_points, 2)+5)+' utility points</li>'
                 anon_utility = anon_utility - substracted_points
-        
+
         # continent
         if len(country_columns) > 0:
             anon_utility = anon_utility - (5 * len(country_columns))
-            utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-globe"></i> Continent: (5 points less for each column using generalization). Total: -'+str(5 * len(country_columns))+' utility points</li>'
+            utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-globe"></i> Continent: (5 points less for each column using generalization). Total: -'+str(
+                5 * len(country_columns))+' utility points</li>'
         # security_card
         if len(masked_columns) > 0:
             anon_utility = anon_utility - (5 * len(masked_columns))
-            utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-shield-alt"></i> Masking data: (5 points less for each column using masking). Total: -'+str(5 * len(masked_columns))+' utility points</li>'
+            utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-shield-alt"></i> Masking data: (5 points less for each column using masking). Total: -'+str(
+                5 * len(masked_columns))+' utility points</li>'
         # transform utility to usa grading system
         if anon_utility >= 97:
             grade = "A+"
@@ -448,14 +502,25 @@ def generate_upload():
             grade = "F"
 
         utility_explain += '<li style="margin-top: 10px;"><i class="fas fa-user-secret"></i> <strong>Anonymized utility: <em>' + \
-            str(round(anon_utility,2)) + '</em> ('+grade+')</strong></li>'
+            str(round(anon_utility, 2)) + '</em> ('+grade+')</strong></li>'
         utility_explain += '</ul>'
 
-        return render_template('result.html', original_column_names=df.columns.values, original_row_data=list(df.values.tolist()),
-                               enc_column_names=anon.columns.values, enc_row_data=list(anon.values.tolist()), zip=zip, original_file=filename, enc_file=filename_without_ext+"_anonymized.csv",  modal=modal_steps, histograms=histograms, differences=differences, utility_explain=utility_explain)
+        return render_template('result.html',
+                               original_column_names=df.columns.values,
+                               k_report=k_report,
+                               original_row_data=list(df.values.tolist()),
+                               enc_column_names=anon.columns.values,
+                               enc_row_data=list(anon.values.tolist()),
+                               zip=zip,
+                               original_file=filename,
+                               enc_file=filename_without_ext+"_anonymized.csv",
+                               modal=modal_steps,
+                               histograms=histograms,
+                               differences=differences,
+                               utility_explain=utility_explain)
 
 
-@app.route('/generate')
+@ app.route('/generate')
 def generate():
 
     # Delete old files
@@ -556,7 +621,7 @@ def generate():
     # Create a histogram of the anonymized age column
     original = anon['age']
     anon['age'] = anon['age'].apply(lambda x: x.split(', ')[
-                                    0].replace('[', ''))
+        0].replace('[', ''))
     anon['age'] = anon['age'].astype(int)
     anon['age'] = anon['age'].apply(lambda x: x + int(interval_width/2))
     hist_plot = anon['age'].plot.hist(
@@ -668,9 +733,10 @@ def generate():
 
     plt.savefig('static/pie_chart'+str(id)+'.png')
     plt.close()
-    histograms['gender']='pie_chart'+str(id)+'.png'
-    differences['gender'] = 'M' + ' difference: ' + str(percentage_male_difference) + '%, ' + 'F' + ' difference: ' + str(percentage_female_difference) + '%'
-
+    histograms['gender'] = 'pie_chart'+str(id)+'.png'
+    differences['gender'] = 'M' + ' difference: ' + \
+        str(percentage_male_difference) + '%, ' + 'F' + \
+        ' difference: ' + str(percentage_female_difference) + '%'
 
     utility_explain = ''
     utility_explain += '<ul style="list-style-type: none; padding: 0;">'
@@ -713,10 +779,10 @@ def generate():
 
     # Return the result page
     return render_template('result.html', original_column_names=df.columns.values, original_row_data=list(df.values.tolist()),
-                           enc_column_names=anon.columns.values, enc_row_data=list(anon.values.tolist()), zip=zip, original_file=str(id)+".csv", enc_file=str(id)+"anonymized.csv", dec_file="static/"+str(id)+"decrypted.csv", modal=modal_steps, utility_explain=utility_explain, histograms = histograms, differences = differences)
+                           enc_column_names=anon.columns.values, enc_row_data=list(anon.values.tolist()), zip=zip, original_file=str(id)+".csv", enc_file=str(id)+"anonymized.csv", dec_file="static/"+str(id)+"decrypted.csv", modal=modal_steps, utility_explain=utility_explain, histograms=histograms, differences=differences)
 
 
-@app.route('/download/<string:filename>')
+@ app.route('/download/<string:filename>')
 def download(filename):
     # as_attachment=True means that the browser will download the file instead of displaying it
     return send_file('static/'+filename, as_attachment=True)
@@ -728,6 +794,7 @@ def delete_files(signum, frame):
         os.remove(f)
     exit(1)
 
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, delete_files)
-    app.run(debug=True)
+    app.run(debug=True,port=5001)

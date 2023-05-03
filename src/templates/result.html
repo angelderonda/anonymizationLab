@@ -27,6 +27,27 @@
         <button onclick="window.history.back();" class="btn btn-link"><i class="fas fa-arrow-left"></i></button>
         Dataset Comparison
     </h1>
+
+    {% if k_report %}
+    <div class="alert alert-primary">
+        <h4>k-anonymity report</h4>
+        <p>
+            {{ k_report.removed_rows}} out of {{ k_report.len}} rows
+            ({{k_report.percent}}%) were removed since they break k-anonymity.
+
+            If this is too much to you, try to do one of the following:
+            <ul>
+                <li>Set a lower k value (Currently using k= {{ k_report.k}})</li>
+                <li>Remove some quasi-identifier columns</li>
+                <li>Generalize more quasi-identifiers</li>
+                <li>Apply stronger generalization to the quasi-identifiers</li>
+            </ul>
+            <button onclick="window.history.back();" class="btn btn-primary">Edit settings</button>
+        </p>
+    </div>
+    {% endif %}
+    
+
     <div class="row">
         <div class="col-md-6">
             <div class="text-center">

@@ -48,6 +48,7 @@ def deident_email(data: pd.DataFrame, identifier_columns: 'list[str]'):
         to_replace = series.unique()
         replace_dict = {data: deident_single_email(data, h) for data in to_replace}
         series.replace(replace_dict, inplace=True)
+        
     return data, key
                         
 

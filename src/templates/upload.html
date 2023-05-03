@@ -6,18 +6,29 @@
   <h1>Dataset Anonymization Tool Configuration</h1>
   <form action="/upload/result" method="post">
     <div class="row justify-content-center">
-      <div class="col-md-6">
+      <div class="col-4">
         <p class="mt-5">
           Manual configure the dataset anonymization tool. In this section you
           must select the type of each column from the csv file you have
           uploaded in order to anonymize the dataset.
         </p>
         <div>
-          <h2>General settings</h2>
-          <input type="number" value="-1" /> k-anonymity
+          <label for="kanon" class="form-label">k-anonymity</label>
+          <input
+            type="number"
+            id="kanon"
+            name="kanon"
+            placeholder="Leave blank to disable"
+          />
+          <p>
+            Enforces anonymity by ensuring that every combination of
+            quasi-identifiers occurs at least k times. 
+            All columns that are not identifiers or sensitive are assumed
+            quasi-identifiers
+          </p>
         </div>
       </div>
-      <table class="data-table table-responsive col-md-6">
+      <table class="data-table table-responsive col-8">
         <thead>
           <tr>
             <th>Column</th>
@@ -39,7 +50,7 @@
               >
                 <option value="sensitive_ignore">Sensitive/Ignore</option>
                 <option value="id">Identifier</option>
-                <option value="email">Email hmac(user)@hma(host)</option>
+                <option value="email">Email (sensitive, result: hmac(user)@hma(host))</option>
                 <option value="num_gen">Numeric data (generalization)</option>
                 <option value="num_data_pert_gauss">
                   Numeric data (gaussian perturbation)
@@ -53,6 +64,7 @@
                 <option value="country">Country (generalization)</option>
                 <option value="num_data_bin">Binary data (perturbation)</option>
                 <option value="mask">Other data (Masking)</option>
+                <option value="remove">Remove column</option>
               </select>
             </td>
             <!-- Add an additional column with an input text field for numeric data -->
