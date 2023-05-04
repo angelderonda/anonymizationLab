@@ -386,9 +386,9 @@ def xxgenerate_upload():
         if number_of_columns_encrypted > 0:
             utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-columns"></i> Number of columns encrypted: <em>' + \
                 str(number_of_columns_encrypted) + \
-                '</em> (5 points less for each one). Total: -' + \
-                str(number_of_columns_encrypted * 5)+' utility points</li>'
-            anon_utility = anon_utility - (number_of_columns_encrypted * 5)
+                '</em> (1 point less for each one). Total: -' + \
+                str(number_of_columns_encrypted * 1)+' utility points</li>'
+            anon_utility = anon_utility - (number_of_columns_encrypted * 1)
 
         number_of_email_columns = len(email_columns)
         if number_of_email_columns > 0:
@@ -748,8 +748,8 @@ def generate():
     number_of_columns_encrypted = 3
     utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-columns"></i> Number of columns encrypted: <em>' + \
         str(number_of_columns_encrypted) + \
-        '</em> (5 points less for each one)</li>'
-    anon_utility = anon_utility - (number_of_columns_encrypted * 5)
+        '</em> (1 points less for each one)</li>'
+    anon_utility = anon_utility - (number_of_columns_encrypted * 1)
     # age
     anon_utility = anon_utility - age_difference * 5
     utility_explain += '<li style="margin-bottom: 5px;"><i class="fas fa-calendar-alt"></i> Age difference: <em>' + \

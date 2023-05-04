@@ -68,7 +68,7 @@
               </select>
             </td>
             <!-- Add an additional column with an input text field for numeric data -->
-            <td id="numeric_data_column_{{column}}" style="display: none">
+            <td id="numeric_data_column_{{column}}">
               <input
                 type="number"
                 min="0"
@@ -76,7 +76,6 @@
                 step="0.01"
                 name="epsilon_{{column}}"
                 id="epsilon_{{column}}"
-                oninput="storeValue(this)"
               />
             </td>
           </tr>
@@ -91,42 +90,5 @@
     </div>
   </form>
 </div>
-
-<script>
-  // Function to check if "Numeric data" is selected and display the additional column with input text field
-  function checkNumericData(selectElem) {
-    var column = selectElem.id.split("_")[1];
-    var numericDataColumn = document.getElementById(
-      "numeric_data_column_" + column
-    );
-    if (selectElem.value.startsWith("num_data")) {
-      numericDataColumn.style.display = "block";
-    } else {
-      numericDataColumn.style.display = "none";
-    }
-  }
-
-  // Function to retrieve the values of the input fields from localStorage and set them as default values
-  function setDefaultValues() {
-    var inputs = document.querySelectorAll('input[type="number"]');
-    for (var i = 0; i < inputs.length; i++) {
-      var key = inputs[i].getAttribute("name");
-      var value = localStorage.getItem(key);
-      if (value !== null) {
-        inputs[i].value = value;
-      }
-    }
-  }
-
-  // Call setDefaultValues() when the page loads
-  window.onload = setDefaultValues;
-
-  // Function to store the value of an input field in localStorage
-  function storeValue(inputElem) {
-    var key = inputElem.getAttribute("name");
-    var value = inputElem.value;
-    localStorage.setItem(key, value);
-  }
-</script>
 
 {% endblock %}
